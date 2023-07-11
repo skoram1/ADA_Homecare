@@ -1,6 +1,3 @@
-
-##  idpdm_apo_frcst_wk_fct _bop_nm
-
 SELECT
   *
 FROM
