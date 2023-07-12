@@ -1,0 +1,32 @@
+SELECT
+  *
+FROM
+  idpdm.apo_frcst_wk_fct
+WHERE
+  FRCST_VERS_DATE IN (
+    SELECT
+      DAY_NUM
+    FROM
+      idpdm.MD_TIME_FDIM
+    WHERE
+      MTH_START_DATE = date_trunc('month', add_months(current_date(), -2))
+      AND SOP_FLAG = 'Y'
+      AND DAY_OF_WK_NAME = 'MONDAY'
+  )
+  AND TP_END_DATE <= date_format(date_add(current_date(), 365), 'yyyyMMdd')
+  AND FILE_SUB_REGN_NAME = 'EU'
+  AND ORG_CODE = 'R'
+  AND PROD_ID IN (
+    SELECT
+      distinct PROD_ID
+    FROM
+      idpdm.MD_PROD_9005_DAY_FDIM
+    WHERE
+      PROD_4_NAME IN (
+        'AIR',
+        'CLEANPROD',
+        'CLEANSYS',
+        'AUTODISH',
+        'HANDDISH'
+      )
+  )
