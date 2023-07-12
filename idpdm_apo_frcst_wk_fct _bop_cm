@@ -1,4 +1,4 @@
-ELECT
+SELECT
   *
 FROM
   idpdm.apo_frcst_wk_fct
