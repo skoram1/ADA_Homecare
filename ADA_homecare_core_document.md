@@ -9,7 +9,7 @@ _Welcome on board and fasten your seatbelt._
 This document will give you initial overview on _who we are_ and _how we work_ in ADA Homecare organization.
 
 We as ADA Homecare are **data and customer** oriented team that understands the importance of data that supports our business.
-We know who our customers are and where they _buy_ - to constalntly serve them with our products.
+We know who our customers are and where they _"buy"_ to constalntly serve them with our products.
 
 ADA Homecare mission is to provide on time, best qualtity and _fit-for-use_ data to all Homecare users. We are committed to developing solutions that enable informed decisions and optimize the balance between _human_ workload and automation. 
 
