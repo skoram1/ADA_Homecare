@@ -21,9 +21,9 @@ Our main goal is to create a user-friendly IT environment for the entire categor
 2/ We are here to deliver P&G quality  
 3/ We want to be available on each shelf  
 
-Those key elements led to creation of **ADA homecare core document** which started our digital transformation journey. You are becoming part of it now. Our model we engraved in IT _"stone"_ in Excel. To start it simple. One part of _core document_ is a _control panel_. It contains all critical information for the _multi-chain_ to work collecting and distributing our data using _ADA Solutions_ and Excel. This _file_ is owned by ADA Homecare B2 and is shared with limited number of people using adahomercare.im folder in ADA Homecare Sharepoint.  
+Those key elements led to creation of **ADA homecare core document** which started our digital transformation journey. You are becoming part of it now. Our model we engraved in IT _"stone"_ in Excel. To start it simple. It serves as _control panel_. There we store all information for **sustainability** ensuring our _multi-chain_ works continously, collecting and distributing our data using _ADA Solutions_ and Excel. This _file_ is owned by ADA Homecare B2 and is shared with limited number of people using adahomercare.im folder in ADA Homecare Sharepoint.  
 
-_ADA Solutions_ must meet **iRisk** requirements. To make it simple we do it via EUPSC HOME PowerBI Workspace. Our _core document_ collects all TID's and AED's for connections we operate with. Any new model has to be designed with ADA Homecare team and stored in _core document_ with approved TID/AED in **_draw.io_**.  
+_ADA Solutions_ must meet **iRisk** requirements. To make it simple we do it via EUPSC HOME PowerBI Workspace. Our _core document_ collects all TID's and AED's for connections we operate with. Any new model has to be designed with ADA Homecare team and stored in _core document_ with approved TID/AED provided in **_draw.io_**.  
 
 **data storage location:** EUPSC HOME Workspace (Premium)  
 **orchestration tool:** adahomecare.im for data governance and quality  
