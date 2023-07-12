@@ -1,99 +1,110 @@
 -- 12/ ALL DATE RANEGES AND NAMES IN SINGLE TABLE
 
 WITH date_ranges AS (
-  -- 1/ next month bop date
-  (SELECT MTH_START_DATE AS range_start_date, MTH_END_DATE AS range_end_date, 'next_month_bop_date' AS useful_date_description
-   FROM idpdm.MD_TIME_FDIM
-   WHERE DAY_DATE BETWEEN (SELECT MTH_START_DATE FROM idpdm.MD_TIME_FDIM WHERE DAY_DATE = CURRENT_DATE())
-                       AND (SELECT MTH_END_DATE FROM idpdm.MD_TIME_FDIM WHERE DAY_DATE = CURRENT_DATE())
-                       AND DAY_OF_WK_NAME = 'MONDAY' AND SOP_FLAG = 'Y' LIMIT 1)
+  -- Current fiscal year excluding current month
+  (WITH date_range AS (
+    SELECT DISTINCT FISC_YR_START_DATE, DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 day' AS PREV_MTH_END_DATE
+    FROM idpdm.MD_TIME_FDIM
+    WHERE DAY_DATE = CURRENT_DATE
+  )
+  SELECT FISC_YR_START_DATE AS range_start_date, PREV_MTH_END_DATE AS range_end_date, 'current_fy_without_current_month' AS useful_date_description
+  FROM date_range)
   
   UNION ALL
   
-  -- 2/ current month bop date
-  (SELECT (MTH_START_DATE - INTERVAL '1 MONTH') AS range_start_date, (MTH_END_DATE - INTERVAL '1 MONTH') AS range_end_date, 'current_month_bop_date' AS useful_date_description
-   FROM idpdm.MD_TIME_FDIM
-   WHERE DAY_DATE BETWEEN (SELECT MTH_START_DATE - INTERVAL '1 MONTH' FROM idpdm.MD_TIME_FDIM WHERE DAY_DATE = CURRENT_DATE())
-                       AND (SELECT MTH_END_DATE - INTERVAL '1 MONTH' FROM idpdm.MD_TIME_FDIM WHERE DAY_DATE = CURRENT_DATE())
-                       AND DAY_OF_WK_NAME = 'MONDAY' AND SOP_FLAG = 'Y' LIMIT 1)
+  -- Previous fiscal year
+  (WITH date_range AS (
+    SELECT DISTINCT FISC_YR_START_DATE - INTERVAL '1 YEAR' AS START_DATE, FISC_YR_END_DATE - INTERVAL '1 YEAR' AS END_DATE
+    FROM idpdm.MD_TIME_FDIM
+    WHERE DAY_DATE = CURRENT_DATE
+  )
+  SELECT START_DATE AS range_start_date, END_DATE AS range_end_date, 'previous_fy' AS useful_date_description
+  FROM date_range)
   
   UNION ALL
   
-  -- 3/ previous month bop date
-  (SELECT (MTH_START_DATE - INTERVAL '2 MONTH') AS range_start_date, (MTH_END_DATE - INTERVAL '2 MONTH') AS range_end_date, 'previous_month_bop_date' AS useful_date_description
-   FROM idpdm.MD_TIME_FDIM
-   WHERE DAY_DATE BETWEEN (SELECT MTH_START_DATE - INTERVAL '2 MONTH' FROM idpdm.MD_TIME_FDIM WHERE DAY_DATE = CURRENT_DATE())
-                       AND (SELECT MTH_END_DATE - INTERVAL '2 MONTH' FROM idpdm.MD_TIME_FDIM WHERE DAY_DATE = CURRENT_DATE())
-                       AND DAY_OF_WK_NAME = 'MONDAY' AND SOP_FLAG = 'Y' LIMIT 1)
+  -- Two fiscal years ago
+  (WITH date_range AS (
+    SELECT DISTINCT FISC_YR_START_DATE - INTERVAL '2 YEAR' AS START_DATE, FISC_YR_END_DATE - INTERVAL '2 YEAR' AS END_DATE
+    FROM idpdm.MD_TIME_FDIM
+    WHERE DAY_DATE = CURRENT_DATE
+  )
+  SELECT START_DATE AS range_start_date, END_DATE AS range_end_date, 'prev_prev_fy' AS useful_date_description
+  FROM date_range)
   
   UNION ALL
   
-  -- 4/ current fy without current month
-  (WITH date_range AS (SELECT DISTINCT FISC_YR_START_DATE, DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 day' AS PREV_MTH_END_DATE
-                      FROM idpdm.MD_TIME_FDIM
-                      WHERE DAY_DATE = CURRENT_DATE)
-   SELECT FISC_YR_START_DATE AS range_start_date, PREV_MTH_END_DATE AS range_end_date, 'current_fy_without_current_month' AS useful_date_description
-   FROM date_range)
-  
-  UNION ALL
-  
-  -- 5/ previous fy
-  (WITH date_range AS (SELECT DISTINCT FISC_YR_START_DATE - INTERVAL '1 YEAR' AS START_DATE, FISC_YR_END_DATE - INTERVAL '1 YEAR' AS END_DATE
-                      FROM idpdm.MD_TIME_FDIM
-                      WHERE DAY_DATE = CURRENT_DATE)
-   SELECT START_DATE AS range_start_date, END_DATE AS range_end_date, 'previous_fy' AS useful_date_description
-   FROM date_range)
-  
-  UNION ALL
-  
-  -- 6/ prev_prev fy
-  (WITH date_range AS (SELECT DISTINCT FISC_YR_START_DATE - INTERVAL '2 YEAR' AS START_DATE, FISC_YR_END_DATE - INTERVAL '2 YEAR' AS END_DATE
-                      FROM idpdm.MD_TIME_FDIM
-                      WHERE DAY_DATE = CURRENT_DATE)
-   SELECT START_DATE AS range_start_date, END_DATE AS range_end_date, 'prev_prev_fy' AS useful_date_description
-   FROM date_range)
-  
-  UNION ALL
-  
-  -- 7/ current month
+  -- Current month
   (SELECT DATE_TRUNC('MONTH', CURRENT_DATE) AS range_start_date, (DATE_TRUNC('MONTH', CURRENT_DATE) + INTERVAL '1 MONTH' - INTERVAL '1 DAY') AS range_end_date, 'current_month' AS useful_date_description
-   FROM idpdm.MD_TIME_FDIM
-   WHERE DAY_DATE = CURRENT_DATE)
+  FROM idpdm.MD_TIME_FDIM
+  WHERE DAY_DATE = CURRENT_DATE)
   
   UNION ALL
   
-  -- 8/ prev month
+  -- Previous month
   (SELECT (DATE_TRUNC('MONTH', CURRENT_DATE) - INTERVAL '1 MONTH') AS range_start_date, (DATE_TRUNC('MONTH', CURRENT_DATE) - INTERVAL '1 DAY') AS range_end_date, 'prev_month' AS useful_date_description
-   FROM idpdm.MD_TIME_FDIM
-   WHERE DAY_DATE = CURRENT_DATE)
+  FROM idpdm.MD_TIME_FDIM
+  WHERE DAY_DATE = CURRENT_DATE)
   
   UNION ALL
   
-  -- 9/ next month
+  -- Next month
   (SELECT (DATE_TRUNC('MONTH', CURRENT_DATE) + INTERVAL '1 MONTH') AS range_start_date, (DATE_TRUNC('MONTH', CURRENT_DATE) + INTERVAL '2 MONTHS' - INTERVAL '1 DAY') AS range_end_date, 'next_month' AS useful_date_description
-   FROM idpdm.MD_TIME_FDIM
-   WHERE DAY_DATE = CURRENT_DATE)
+  FROM idpdm.MD_TIME_FDIM
+  WHERE DAY_DATE = CURRENT_DATE)
   
   UNION ALL
   
-  -- 10/ next 12 months from current month start date
-  (WITH date_range AS (SELECT MTH_START_DATE AS START_DATE, MTH_END_DATE + INTERVAL '12 MONTHS' - INTERVAL '1 DAY' AS END_DATE
-                       FROM idpdm.MD_TIME_FDIM
-                       WHERE DAY_DATE = CURRENT_DATE)
-   SELECT START_DATE AS range_start_date, END_DATE AS range_end_date, 'next_12_months' AS useful_date_description
-   FROM date_range)
+  -- Next 12 months from current month start date
+  (WITH date_range AS (
+    SELECT MTH_START_DATE AS START_DATE, MTH_END_DATE + INTERVAL '12 MONTHS' - INTERVAL '1 DAY' AS END_DATE
+    FROM idpdm.MD_TIME_FDIM
+    WHERE DAY_DATE = CURRENT_DATE
+  )
+  SELECT START_DATE AS range_start_date, END_DATE AS range_end_date, 'next_12_months' AS useful_date_description
+  FROM date_range)
   
   UNION ALL
   
-  -- 11/ next 13 weeks
-  (WITH date_range AS (SELECT WK_START_DATE AS START_DATE, (WK_START_DATE + INTERVAL '12 weeks' + INTERVAL '6 days') AS END_DATE
-                       FROM idpdm.MD_TIME_FDIM
-                       WHERE DAY_DATE = CURRENT_DATE)
-   SELECT START_DATE AS range_start_date, END_DATE AS range_end_date, 'next_13_weeks' AS useful_date_description
-   FROM date_range)
+  -- Next 13 weeks
+  (WITH date_range AS (
+    SELECT WK_START_DATE AS START_DATE, (WK_START_DATE + INTERVAL '12 weeks' + INTERVAL '6 days') AS END_DATE
+    FROM idpdm.MD_TIME_FDIM
+    WHERE DAY_DATE = CURRENT_DATE
+  )
+  SELECT START_DATE AS range_start_date, END_DATE AS range_end_date, 'next_13_weeks' AS useful_date_description
+  FROM date_range)
+),
+next_month_bop_date AS (
+  SELECT MIN(DAY_DATE) AS range_start_date, NULL AS range_end_date, 'next_month_bop_date' AS useful_date_description
+  FROM idpdm.MD_TIME_FDIM
+  WHERE DAY_DATE BETWEEN DATE_TRUNC('MONTH', CURRENT_DATE) AND DATE_TRUNC('MONTH', CURRENT_DATE) + INTERVAL '1 MONTH' - INTERVAL '1 DAY'
+    AND DAY_OF_WK_NAME = 'MONDAY'
+    AND SOP_FLAG = 'Y'
+),
+current_month_bop_date AS (
+  SELECT MIN(DAY_DATE) AS range_start_date, NULL AS range_end_date, 'current_month_bop_date' AS useful_date_description
+  FROM idpdm.MD_TIME_FDIM
+  WHERE DAY_DATE BETWEEN DATE_TRUNC('MONTH', CURRENT_DATE) - INTERVAL '1 MONTH' AND DATE_TRUNC('MONTH', CURRENT_DATE) - INTERVAL '1 DAY'
+    AND DAY_OF_WK_NAME = 'MONDAY'
+    AND SOP_FLAG = 'Y'
+),
+previous_month_bop_date AS (
+  SELECT MIN(DAY_DATE) AS range_start_date, NULL AS range_end_date, 'previous_month_bop_date' AS useful_date_description
+  FROM idpdm.MD_TIME_FDIM
+  WHERE DAY_DATE BETWEEN DATE_TRUNC('MONTH', CURRENT_DATE) - INTERVAL '2 MONTH' AND DATE_TRUNC('MONTH', CURRENT_DATE) - INTERVAL '1 MONTH' - INTERVAL '1 DAY'
+    AND DAY_OF_WK_NAME = 'MONDAY'
+    AND SOP_FLAG = 'Y'
 )
 
-SELECT range_start_date, CASE WHEN range_start_date = range_end_date THEN NULL ELSE range_end_date END AS range_end_date, useful_date_description
-FROM date_ranges
-ORDER BY useful_date_description;
-
+SELECT range_start_date, range_end_date, useful_date_description
+FROM (
+  SELECT range_start_date, range_end_date, useful_date_description FROM date_ranges
+  UNION ALL
+  SELECT range_start_date, range_end_date, useful_date_description FROM next_month_bop_date
+  UNION ALL
+  SELECT range_start_date, range_end_date, useful_date_description FROM current_month_bop_date
+  UNION ALL
+  SELECT range_start_date, range_end_date, useful_date_description FROM previous_month_bop_date
+) AS combined_date_ranges
+LIMIT 1000;
