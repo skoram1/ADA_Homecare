@@ -1,6 +1,3 @@
-
-
-
 -- 12/ ALL DATE RANEGES AND NAMES IN SINGLE TABLE
 
 WITH date_ranges AS (
