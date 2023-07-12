@@ -6,14 +6,14 @@ Dear Citizen Developer,
 
 _Welcome on board and fasten your seatbelt._ 
 
-This document will give you initial overview on _who we are_ and _how we work_ in _ADA Homecare_ organization.
+This document will give you an initial overview on _who we are_ and _how we work_ in _ADA Homecare_ organization.
 
 We as _ADA Homecare_ are **data and customer** oriented team which understands the importance of data that supports our business.
-We know who our customers are and where they _"buy"_ to constalntly serve them with our products.
+We know who our customers are and where they _"buy"_ to constantly serve them with our products.
 
-**Our mission:** provide on time, best qualtity and _fit-for-use_ data to all Homecare users. We are committed to developing solutions that enable informed decisions and optimize the balance between _human_ workload and automation. 
+**Our mission:** provide on time, best quality and _fit-for-use_ data to all Homecare users. We are committed to developing solutions that enable informed decisions and optimize the balance between _human_ workload and automation. 
 
-We want to achieve this by creating user-friendly IT environment for the entire category. Making it easy for users to focus on analyzing data and solving business problems, rather than spending time searching for or verifying data. At _ADA Homecare_, we are here to ensure that your daily data is of high quality, trustworthy, and well-governed.
+We want to achieve this by creating user-friendly IT environment for the entire category. Making it easy for users to focus on analyzing data and solving business problems, rather than spending time searching for or verifying data. At _ADA Homecare_, we are here to ensure that your daily data is of high quality, trusty, and well-governed.
 
 **Our model design was guided by the following essential principles:**
 
@@ -35,15 +35,15 @@ _ADA Solutions_ must meet **iRisk** requirements. To make it simple we do it via
 **external not allowed** - if your query is complex and cannot be fully moved to datamart you must provide complete technical documentation. It will be stored for it's governance on our _ADA Solutions_ **sharepoint list** owned by _ADA Homecare_ B2.
 
 **refresh frequency:** daily, monthly, weekly, liveb  
-*_disclaimer: for external sources we will require timestamp of last refresh - continously_
+*_disclaimer: for external sources we will require timestamp of last refresh - continuously_
 
 **refresh triggers:** api, powerbi
 
-**quality** - all our data requires evidence of quality against specified P&G official sources. We will keep continous check against those sourcse with our PowerAutomate quality schedule
+**quality** - all our data requires evidence of quality against specified P&G official sources. We will keep continuous check against those sourcse with our PowerAutomate quality schedule
 
 **correct documentation** is understood as clearly described KNIME flow or any type of code. PowerAutomate flows need to be transferred to adahomrecare.im, KNIME files stored in _adahomecare.im_ folder on Sharepoint 
 
-**query must be provided** mandatory. No dataflow will be created before previous check with ADA team. Your query is stored in P&G GitHub repository under the name: ADA_Homecare. This makes our queries easily accesible by all members of _ADA Homecare_.
+**query must be provided** mandatory. No dataflow will be created before previous check with ADA team. Your query is stored in P&G GitHub repository under the name: ADA_Homecare. This makes our queries easily accessible by all members of _ADA Homecare_.
 
 _(consider using ChatGPT to provide you with entry description for each step - then YOU responsible to correct or provide details)_  
 **DO NOT DISCLOSE ANY CONNECTION DETAILS AND REPLACE _SCHEMA_ NAME WITH SPECIFIC WORD TO EASILY REPLACE AFTERWARDS**
@@ -57,7 +57,7 @@ _(consider using ChatGPT to provide you with entry description for each step - t
 
 Shortly on _Core Document_:
 
-**full skeleton** is provided. The Excel file allows you to orchestrate your flows, dataflows, datamart and synchronize them. This is a control panel. It contains all the references to GitHub where queries are stored. We use GitHub to feed our python codes with SQL code to use it in for further automations.
+A **full skeleton** is provided. The Excel file allows you to orchestrate your flows, dataflows, datamart and synchronize them. This is a control panel. It contains all the references to GitHub where queries are stored. We use GitHub to feed our python codes with SQL code to use it for further automations.
 
 Welcome on board and enjoy the trip!
 <br></br>
