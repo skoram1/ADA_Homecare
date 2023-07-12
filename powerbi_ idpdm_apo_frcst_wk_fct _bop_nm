@@ -1,4 +1,0 @@
-let
-  Source = Value.NativeQuery(Databricks.Catalogs("adb-5052962900645149.9.azuredatabricks.net", "/sql/1.0/warehouses/53d04b8d0eb0f47e", [Catalog="hive_metastore", Database=null, EnableAutomaticProxyDiscovery=null]){[Name="hive_metastore",Kind="Database"]}[Data], "SELECT * FROM idpdm.apo_frcst_wk_fct WHERE FRCST_VERS_DATE IN (SELECT DAY_NUM FROM idpdm.MD_TIME_FDIM WHERE MTH_START_DATE = date_trunc('month', add_months(current_date(), 0)) AND SOP_FLAG = 'Y' AND DAY_OF_WK_NAME = 'MONDAY' AND EXISTS (SELECT 1 FROM idpdm.MD_TIME_FDIM WHERE MTH_START_DATE = date_trunc('month', add_months(current_date(), -1)) AND SOP_FLAG = 'Y' AND DAY_OF_WK_NAME = 'MONDAY')) AND TP_END_DATE <= date_format(date_add(current_date(), 365), 'yyyyMMdd') AND FILE_SUB_REGN_NAME = 'EU' AND ORG_CODE = 'R' AND PROD_ID IN (SELECT distinct PROD_ID FROM idpdm.MD_PROD_9005_DAY_FDIM WHERE PROD_4_NAME IN ('AIR', 'CLEANPROD', 'CLEANSYS', 'AUTODISH', 'HANDDISH'))", null, [EnableFolding=true])
-in
-  Source
