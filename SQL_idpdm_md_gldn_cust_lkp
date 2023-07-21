@@ -1,0 +1,11 @@
+SELECT
+  *,
+  concat_ws(
+    '_',
+    CNTRY_CLSTR_CODE,
+    CAST(GLDN_CUST_ID AS STRING)
+  ) AS REF_CTRY_CUST
+FROM
+  idpdm.md_gldn_cust_lkp
+WHERE
+  GLDN_CUST_ID is not null
