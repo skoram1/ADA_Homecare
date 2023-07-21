@@ -1,0 +1,12 @@
+REQUIRE ACCESS TO NSWLIVESTOCK ONE-DRIVE OWNED BY FABRIC CARE
+
+let
+    Source = SharePoint.Files("https://pgone-my.sharepoint.com/personal/nswlivestock_im_pg_com", [ApiVersion = 15]),
+    #"Filtered Rows" = Table.SelectRows(Source, each ([Name] = "NSW Stock.xlsx")),
+    #"NSW Stock xlsx_https://pgone-my sharepoint com/personal/nswlivestock_im_pg_com/Documents/NSW Inventory/" = #"Filtered Rows"{[Name="NSW Stock.xlsx",#"Folder Path"="https://pgone-my.sharepoint.com/personal/nswlivestock_im_pg_com/Documents/NSW Inventory/"]}[Content],
+    #"Imported Excel Workbook" = Excel.Workbook(#"NSW Stock xlsx_https://pgone-my sharepoint com/personal/nswlivestock_im_pg_com/Documents/NSW Inventory/"),
+    Sheet1_Sheet = #"Imported Excel Workbook"{[Item="Sheet1",Kind="Sheet"]}[Data],
+    #"Promoted Headers" = Table.PromoteHeaders(Sheet1_Sheet, [PromoteAllScalars=true]),
+    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"Plant", type text}, {"Quantity", Int64.Type}})
+in
+    #"Changed Type"
