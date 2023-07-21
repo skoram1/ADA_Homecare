@@ -1,0 +1,19 @@
+SELECT
+  *
+FROM
+  idpdm.md_fpc_famly_lkp
+WHERE
+  PROD_ID IN (
+    SELECT
+      DISTINCT PROD_ID
+    FROM
+      idpdm.MD_PROD_9005_DAY_FDIM
+    WHERE
+      PROD_4_NAME IN (
+        'AIR',
+        'CLEANPROD',
+        'CLEANSYS',
+        'AUTODISH',
+        'HANDDISH'
+      )
+  )
