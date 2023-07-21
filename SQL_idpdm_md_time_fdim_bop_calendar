@@ -1,0 +1,2 @@
+SELECT * FROM idpdm.md_time_fdim
+WHERE SOP_FLAG = 'Y' AND DAY_OF_WK_NAME = 'MONDAY'
