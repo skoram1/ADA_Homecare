@@ -1,0 +1,2 @@
+SELECT * FROM idpdm.md_geo_705_day_fdim
+WHERE not ISO_CNTRY_CODE is null
