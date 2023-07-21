@@ -1,0 +1,12 @@
+SELECT
+  *
+FROM
+  idpdm.MD_PROD_9005_DAY_FDIM
+WHERE
+  PROD_4_NAME IN (
+    'AIR',
+    'CLEANPROD',
+    'CLEANSYS',
+    'AUTODISH',
+    'HANDDISH'
+  )
