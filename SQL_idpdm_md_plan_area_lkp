@@ -1,0 +1,12 @@
+SELECT
+  *
+FROM
+  idpdm.md_plan_area_lkp
+WHERE
+  CATEG_NAME IN (
+    'AIR',
+    'CLEANPROD',
+    'CLEANSYS',
+    'AUTODISH',
+    'HANDDISH'
+  )
