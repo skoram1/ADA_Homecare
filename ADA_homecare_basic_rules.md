@@ -29,7 +29,6 @@ Shortly on _Core Document_:
 
 A **full skeleton** is provided. The Excel file allows you to orchestrate your flows, dataflows, datamart and synchronize them. This is a control panel. It contains all the references to GitHub where queries are stored. We use GitHub to feed our python codes with SQL code to use it for further automations.
 
-Welcome on board and enjoy the trip!
 <br></br>
 Your sincere
 ADA Homecare team
