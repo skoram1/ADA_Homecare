@@ -23,7 +23,7 @@ WHERE usd_pg_owned_stock<>0 -- roznica jest tutaj w porownaniu do CL
 AND complex_decomposition <> "L"
 AND region IN ("EUE","EUF")
 AND (calendar_date >= CONCAT(CAST(YEAR(current_date()) - CASE WHEN MONTH(current_date()) < 7 THEN 1 ELSE 0 END AS STRING), '-07-01')
-AND calendar_date < date_sub(add_months(trunc(current_date(), 'MM'),1),1))
+AND calendar_date < trunc(current_date(), 'MM')
 GROUP BY calendar_date, material, plant, region, tdc_val, currency_key, valuation_class, material_plant_key, material_group, complex_decomposition
 ),
 
