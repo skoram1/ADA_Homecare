@@ -1,0 +1,13 @@
+// This is .xlsx file containing AW BASE with: Region, Project Number, Printers, Project Name, Project State, POA Number, owner, Category, supplier, POA State, POA_DESCRIPTION, Separate Colors Actual Date, IPMS, Project Scale
+// File path: https://pgone-my.sharepoint.com/:f:/r/personal/nswlivestock_im_pg_com/Documents/RTA%20Server?csf=1&web=1&e=To1cud
+// For access please contact SNH Warsaw Fabric Care ADA Team
+// This is onedrive of NSWLivestock account
+
+
+let
+  Source = SharePoint.Files("https://pgone-my.sharepoint.com/personal/nswlivestock_im_pg_com/", [ApiVersion = 15]),
+  Navigation = Source{[Name = "rta status_vw_aw_base.xlsx", #"Folder Path" = "https://pgone-my.sharepoint.com/personal/nswlivestock_im_pg_com/Documents/RTA Server/"]}[Content],
+  #"Imported Excel workbook" = Excel.Workbook(Navigation, null, true),
+  #"Navigation 1" = #"Imported Excel workbook"{[Item = "Sheet1", Kind = "Sheet"]}[Data]
+in
+  #"Navigation 1"
