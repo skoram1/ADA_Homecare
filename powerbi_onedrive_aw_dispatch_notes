@@ -1,0 +1,69 @@
+// To get access to the SharePoint list with @awbase dispatch notes (https://pgone.sharepoint.com/sites/LiveStock) contact ADA Fabric Care NSWLivestock owners. 
+// This is a sharepoint list created from AW studio emails intercepted with awbase email address. 
+// If this email address is in the recipient list of dispatch notes it means they are intercepted on the list. 
+// Here below is the powerquery to read from this list
+
+
+let
+  // Step 1: Retrieve the tables from the SharePoint site using the specified URL and API version
+  Source = SharePoint.Tables("https://pgone.sharepoint.com/sites/LiveStock", [Implementation = null, ApiVersion = 15]),
+  // Step 2: Access the specific table using its ID
+  #"b505d4ec-08e6-4d68-9aa8-41948806af80" = Source{[Id = "b505d4ec-08e6-4d68-9aa8-41948806af80"]}[Items],
+  // Step 3: Select the desired columns from the table
+  #"Removed Other Columns" = Table.SelectColumns(#"b505d4ec-08e6-4d68-9aa8-41948806af80", {"Title", "Modified", "Created", "Projectnumber", "POAnumber", "IPMSnumber", "AWPath", "DispatchNotePath", "Company", "Vendor"}),
+  // Step 4: Add a custom column "POA number" by concatenating "POAnumber" with a prefix "POA-" and padding it with zeros
+  #"Added Custom" = Table.AddColumn(#"Removed Other Columns", "POA number", each "POA-" & Text.PadStart([POAnumber], 8, "0")),
+  // Step 5: Add a custom column "Project number" by concatenating "Projectnumber" with a prefix "P-" and padding it with zeros
+  #"Added Custom1" = Table.AddColumn(#"Added Custom", "Project number", each "P-" & Text.PadStart([Projectnumber], 7, "0")),
+  // Step 6: Remove the columns "Projectnumber" and "POAnumber" from the table
+  #"Removed Columns" = Table.RemoveColumns(#"Added Custom1", {"Projectnumber", "POAnumber"}),
+  // Step 7: Transform the column types of the table based on the specified schema
+  #"Changed Type" = Table.TransformColumnTypes(#"Removed Columns", {{"POA number", type text}, {"Project number", type text}, {"IPMSnumber", type text}}),
+  // Step 8: Reorder the columns in the table
+  #"Reordered Columns" = Table.ReorderColumns(#"Changed Type", {"Title", "Modified", "Created", "Company", "IPMSnumber", "AWPath", "DispatchNotePath", "Vendor", "POA number", "Project number"}),
+  // Step 9: Extract the date part from the "Modified" column
+  #"Extracted Date" = Table.TransformColumns(#"Reordered Columns",{{"Modified", DateTime.Date, type date}}),
+  // Step 10: Replace the value "pl" with "fujiseal" in the "Vendor" column
+  #"Replaced Value" = Table.ReplaceValue(#"Extracted Date", "pl", "fujiseal", Replacer.ReplaceValue, {"Vendor"}),
+  // Step 11: Filter rows based on the condition that all rows are true
+  #"Filtered Rows" = Table.SelectRows(#"Replaced Value", each true),
+  // Step 12: Rename specific columns in the table
+  #"Renamed Columns" = Table.RenameColumns(#"Filtered Rows", {{"Vendor", "Vendor.1st version"}, {"AWPath", "AWPath.old"}, {"DispatchNotePath", "DispatchNotePath.old"}, {"Modified", "Modified.old"}, {"Created", "Created.old"}}),
+  // Step 13: Add a custom column "Custom without sgsintl" based on the values in the "Vendor.1st version" column
+  #"Added Custom3" = Table.AddColumn(#"Renamed Columns", "Custom without sgsintl", each if [Vendor.1st version] = "all4labels,sgsintl" then "all4labels" else if [Vendor.1st version] = "all4labels,sgsintl,rako-etiketten" then "all4labels,rako-etiketten" else if [Vendor.1st version] = "dunavpress,zobele,sgsintl" then "dunavpress,zobele" else if [Vendor.1st version] = "ipe-innovaciones,sgsintl" then "ipe-innovaciones" else if [Vendor.1st version] = "mm,sgsintl" then "mm" else if [Vendor.1st version] = "nekicesa,sgsintl" then "nekicesa" else if [Vendor.1st version] = "recticel,sgsintl,schaeferdruck" then "recticel,schaeferdruck" else if [Vendor.1st version] = "sgsintl" then "undefined" else if [Vendor.1st version] = "sgsintl,all4labels" then "all4labels" else if [Vendor.1st version] = "sgsintl,farmol" then "farmol" else if [Vendor.1st version] = "sgsintl,mcclabel" then "mcclabel" else if [Vendor.1st version] = "sgsintl,moraviacans" then "moraviacans" else if [Vendor.1st version] = "sgsintl,nsdinternational" then "nsdinternational" else if [Vendor.1st version] = "skanem,sgsintl" then "skanem" else if [Vendor.1st version] = "vangenechten,sgsintl" then "vangenechten" else if [Vendor.1st version] = "nekicesa,SGSCO" then "nekicesa" else [Vendor.1st version]),
+  // Step 14: Add a custom column "Vendor.2nd version" based on the values in the "Custom without sgsintl" column
+  #"Custom for vendor" = Table.AddColumn(#"Added Custom3", "Vendor.2nd version", each if [Custom without sgsintl]="eu" or [Custom without sgsintl]="eu,pl"
+then "fujiseal"
+else if [Custom without sgsintl]="dssmith" or [Custom without sgsintl]="dssp"
+then "dssmith"
+else if [Custom without sgsintl]="mm" or [Custom without sgsintl]="mm-packaging"
+then "mm-packaging"
+else if [Custom without sgsintl]="dunavpress" or [Custom without sgsintl]="dunavpress,zobele"
+then "dunavpress"
+else if [Custom without sgsintl]="all4labels,rako-etiketten" or [Custom without sgsintl]="rako-etiketten" or [Custom without sgsintl]="rako-etiketten,all4labels"
+then "rako-etiketten, all4labels"
+else if [Custom without sgsintl]="sgsintl,all4labels" or [Custom without sgsintl]="all4labels"
+then "all4labels"
+else if [Custom without sgsintl]="moraviacans" or [Custom without sgsintl]="sgsintl,moraviacans"
+then "moraviacans"
+else if [Custom without sgsintl]="smurfitkappa" or [Custom without sgsintl]="smufitkappa"
+then "smurfitkappa"
+else if [Custom without sgsintl]="paperwrks" or [Custom without sgsintl]="onepaperworks,paperwrks"
+then "paperwrks"
+else [Custom without sgsintl]),
+  // Step 15: Group rows based on multiple columns and apply aggregations to the specified columns
+  #"Grouped Rows" = Table.Group(#"Custom for vendor", {"Project number", "Vendor.2nd version", "IPMSnumber", "POA number", "Company"}, {{"AWPath pre-last version", each List.Max([AWPath.old]), type nullable text}, {"DispatchNotePath pre-last version", each List.Max([DispatchNotePath.old]), type nullable text}, {"Modified pre-last version", each List.Max([Modified.old]), type date}, {"Created pre-last version", each List.Min([Created.old]), type datetime}}),
+  // Step 16: Add a custom column "0 for undefined" based on the values in the "Vendor.2nd version" column
+  #"Added Custom2" = Table.AddColumn(#"Grouped Rows", "0 for undefined", each if [Vendor.2nd version] = "undefined" then 0 else [Vendor.2nd version]),
+  // Step 17: Group rows based on multiple columns and create a new column "Count" containing the original table for each group
+  #"Grouped Rows1" = Table.Group(#"Added Custom2", {"IPMSnumber", "POA number", "Project number", "Company"}, {{"Count", each _, type table[#"Project number" = nullable text, #"Vendor.2nd version" = text, IPMSnumber = nullable text, #"POA number" = nullable text, Company = text, #"AWPath pre-last version" = nullable text, #"DispatchNotePath pre-last version" = nullable text, #"Modified pre-last version" = date, #"Created pre-last version" = datetime, #"0 for undefined" = text]}, {"Vendor", each List.Max([0 for undefined]), type text}, {"AWPath", each List.Max([#"AWPath pre-last version"]), type nullable text}, {"DispatchNotePath", each List.Max([#"DispatchNotePath pre-last version"]), type nullable text}, {"Modified", each List.Max([#"Modified pre-last version"]), type date}, {"Created", each List.Min([#"Created pre-last version"]), type datetime}}),
+  // Step 18: Expand the "Count" column to retrieve the original table for each group
+  #"Expanded Count" = Table.ExpandTableColumn(#"Grouped Rows1", "Count", {"Vendor.2nd version"}, {"Vendor.2nd version"}),
+  // Step 19: Transform the column types of the table based on the specified schema
+  #"Changed Type1" = Table.TransformColumnTypes(#"Expanded Count", {{"Vendor", type text}}),
+  // Step 20: Replace the value "0" with "undefined " in the "Vendor" column
+  #"Replaced Value1" = Table.ReplaceValue(#"Changed Type1", "0", "undefined ", Replacer.ReplaceText, {"Vendor"}),
+  #"Transform columns" = Table.TransformColumnTypes(#"Replaced Value1", {{"Company", type text}}),
+  #"Replace errors" = Table.ReplaceErrorValues(#"Transform columns", {{"Company", null}})
+in
+  #"Replace errors"
