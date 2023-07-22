@@ -1,0 +1,24 @@
+// To get access - you need to be subcribed to quickbase change management 
+// Access https://pg.quickbase.com/
+// Below query represent data pull of AW change management for EMEA Home Care for needs of SNH Warsaw Home Care Category 
+
+
+
+let
+    // Step 1: Retrieve the contents of the QuickBase database
+    Source = QuickBase.Contents("https://pg.quickbase.com/db/bpcremsk6"),
+
+    // Step 2: Filter the data based on the value of the "Key" column being equal to "bpcrih985"
+    bpcrih985 = Source{[Key="bpcrih985"]}[Data],
+
+    // Step 3: Filter the data further based on the value of the "Key" column being equal to "5"
+    #"5" = bpcrih985{[Key="5"]}[Data],
+
+    // Step 4: Select only the rows where the value in the "Category" column is equal to "Home Care"
+    #"Filtered Rows" = Table.SelectRows(#"5", each ([Category] = "Home Care")),
+
+    // Step 5: Remove duplicate rows based on the values in the "PROJECT NUMBER:" column
+    #"Removed Duplicates" = Table.Distinct(#"Filtered Rows", {"PROJECT NUMBER:"})
+in
+    // Return the resulting table after all transformations
+    #"Removed Duplicates"
