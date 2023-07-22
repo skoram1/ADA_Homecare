@@ -1,0 +1,120 @@
+// Below short description of each view in the query for CURRENT MONTH
+// 1. **INVENTORY_DP**: This step is aggregating inventory data on several fields, including `calendar_date`, `material`, `plant`, `region`, etc., from the `dp_inventory.inv_fct_emea` table. It's filtering out records with a `usd_pg_owned_stock` value of 0 and those with a `complex_decomposition` value of 'L'. It also focuses on two regions, 'EUE' and 'EUF', and selects data from CURRENT MONTH.
+// 2. **MATPLANTLOC**: This step left-joins the result from `INVENTORY_DP` with `dp_inventory.matl_plant_dim` on the `material_plant_key` field, which brings in additional information like `supply_network_prod_plant`, `supply_network_prod_plant_text`, and `mrp_drp_controller`.
+// 3. **CATEGTDC**: This step joins the `MATPLANTLOC` result with `dp_inventory.tdc_val_dim` on `tdc_val`, bringing in new fields like `subsector`, `sector`, `pgp_retail`, etc. It only includes records where the `sector` is 'F&HC', the `subsector` is 'HOMECARE', and `pgp_retail` is 'R'.
+// 4. **MATDIM**: This step joins `CATEGTDC` with `dp_inventory.matl_dim` on `material`, bringing in more fields like `customization_type`, `segment`, `brand`, etc.
+// 5. **MATERIAL_TYPE**: Here, `MATDIM` is joined with `dp_inventory.val_class_dim` on `valuation_class` to bring in the `material_type_derived` field. It filters the records to include only the ones with `material_type_derived` as 'FPC', 'RAW', 'INT', 'PACK'.
+// 6. **FINALTABLE**: Joins `MATERIAL_TYPE` with `dp_inventory.plant_dim` on `plant` to add information about the country, geographic group, and joint venture flag. Null `joint_venture_flag` is replaced with an empty string.
+// 7. **MAT_MD**: This step simply pulls records from `dp_osi_eu_ecc.makt_material_descriptions` for English language materials.
+// 8. **LCUR**: Selects all records from the `dp_inventory.currency_dim` table.
+// 9. **SMO_ACC**: This step selects records from `ap_inventory.inventory_fct_emea` where `material_group` equals 'FIN PROD', `region` is 'EUF' or 'EUE' and `calendar_date` is the most recent.
+// 10. **PLANT_MAPPING**: Selects all records from the `hive_metastore.userdb_skora_m_1.hom_fpc_mapping` table.
+// 11. **FINAL QUERY**: This is the last step where the `FINALTABLE` is joined with all previous result sets `MAT_MD`, `LCUR`, `SMO_ACC`, `LCUR`, `PLANT_MAPPING` on appropriate keys. The query also filters out records where `joint_venture_flag` is 'JV'. This final query forms the ultimate result of the entire query.
+
+
+WITH INVENTORY_DP
+AS
+(
+SELECT calendar_date, material, plant, region, tdc_val, currency_key, valuation_class, material_plant_key, material_group, complex_decomposition, SUM(msu_total_plant_stock) AS msu_total_plant_stock, SUM(usd_pg_owned_stock) AS usd_pg_owned_stock, SUM(buom_total_plant_stock) AS buom_total_plant_stock, SUM(stdpal_total_plant_stock) AS stdpal_total_plant_stock, SUM(c_pal_total_plant_stock) AS c_pal_total_plant_stock
+FROM dp_inventory.inv_fct_emea
+WHERE usd_pg_owned_stock<>0 -- roznica jest tutaj w porownaniu do CL 
+AND complex_decomposition <> "L"
+AND region IN ("EUE","EUF")
+AND (calendar_date >= trunc(current_date(), 'MM')
+AND calendar_date < date_add(trunc(add_months(current_date(), 1), 'MM'), 0))
+GROUP BY calendar_date, material, plant, region, tdc_val, currency_key, valuation_class, material_plant_key, material_group, complex_decomposition
+),
+
+MATPLANTLOC
+AS
+(
+SELECT A.*, B.supply_network_prod_plant, B.supply_network_prod_plant_text, B.mrp_drp_controller
+FROM INVENTORY_DP AS A LEFT JOIN dp_inventory.matl_plant_dim AS B ON
+A.material_plant_key=B.material_plant_key
+),
+
+CATEGTDC
+AS
+(
+SELECT A.*, B.subsector, B.sector, B.pgp_retail, B.category, B.tdc_val_text_long
+FROM MATPLANTLOC AS A LEFT JOIN dp_inventory.tdc_val_dim AS B ON
+A.tdc_val = B.tdc_val
+WHERE B.sector IN ("F&HC")
+AND B.subsector IN ("HOMECARE")
+AND B.pgp_retail = 'R'
+),
+
+MATDIM
+AS
+(
+SELECT A.*, B.customization_type, B.segment, B.brand, B.brand_detail, B.consumer_unit_size
+FROM CATEGTDC AS A LEFT JOIN dp_inventory.matl_dim AS B ON
+A.material = B.material
+),
+
+MATERIAL_TYPE
+AS
+(
+SELECT A.*, B.material_type_derived
+FROM MATDIM AS A LEFT JOIN dp_inventory.val_class_dim AS B ON -- tutaj jest roznica bo w index mieliśmy material type od razu 
+A.valuation_class = B.valuation_class
+WHERE material_type_derived IN ("FPC", "RAW", "INT", "PACK")
+),
+
+FINALTABLE
+AS
+(
+SELECT A.*, B.country, B.geographic_group,
+CASE WHEN B.joint_venture_flag is null THEN ""
+ELSE B.joint_venture_flag
+END AS joint_venture_flag
+FROM MATERIAL_TYPE AS A LEFT JOIN dp_inventory.plant_dim AS B ON  
+A.plant=B.plant
+),
+
+MAT_MD
+as
+(
+SELECT id_of_product_material, name_short_description_of_product, material_description_in_upper_case_for_matchcodes, language_code
+FROM dp_osi_eu_ecc.makt_material_descriptions
+WHERE language_code = "E"
+),
+
+LCUR
+AS
+(
+SELECT usd_factor, currency_key, valid_from, valid_to
+FROM dp_inventory.currency_dim 
+),
+
+SMO_ACC
+AS
+(
+SELECT material_plant_key, smo_acc_single_smo, calendar_date
+FROM ap_inventory.inventory_fct_emea 
+WHERE material_group = "FIN PROD"
+AND calendar_date = (SELECT MAX(calendar_date) FROM ap_inventory.inventory_fct_emea) 
+AND (region = "EUF" OR region="EUE")
+),
+
+PLANT_MAPPING
+AS
+(
+SELECT material_id, UPPER(value_stream) AS value_stream, UPPER(secondary_value_stream) AS secondary_value_stream
+FROM hive_metastore.userdb_skora_m_1.hom_fpc_mapping 
+)
+SELECT DISTINCT a.*,
+b.name_short_description_of_product,
+b.material_description_in_upper_case_for_matchcodes,
+c.usd_factor,
+d.smo_acc_single_smo,
+e.usd_factor as usd_factor_mfx,
+f.value_stream,
+f.secondary_value_stream
+FROM FINALTABLE as a 
+left join MAT_MD as b on cast(a.material as int)=cast(b.id_of_product_material as int)
+left join LCUR as c on a.currency_key=c.currency_key and cast(date_format(a.calendar_date,'yyyyMMdd') as int) >= c.valid_from and cast(date_format(a.calendar_date,'yyyyMMdd') as int) <= c.valid_to
+left join SMO_ACC as d on a.material_plant_key=d.material_plant_key
+left join LCUR as e on a.currency_key=e.currency_key and cast(date_format(a.calendar_date-1,'yyyyMMdd') as int) >= e.valid_from and cast(date_format(a.calendar_date-1,'yyyyMMdd') as int) <= e.valid_to
+left join PLANT_MAPPING AS f ON CAST(a.material AS int)=CAST(f.material_id AS int)
+WHERE a.joint_venture_flag <> "JV"
