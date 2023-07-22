@@ -1,0 +1,13 @@
+// This is .xlsx file containing AW DSM (printer names and MEP numbers) from https://pgone-my.sharepoint.com/:f:/r/personal/nswlivestock_im_pg_com/Documents/RTA%20Server?csf=1&web=1&e=To1cud
+// For access please contact SNH Warsaw Fabric Care ADA Team
+// This is onedrive of NSWLivestock account
+
+let
+  Source = SharePoint.Files("https://pgone-my.sharepoint.com/personal/nswlivestock_im_pg_com/", [ApiVersion = 15]),
+  Navigation = Source{[Name = "AW_Dsm.xlsx", #"Folder Path" = "https://pgone-my.sharepoint.com/personal/nswlivestock_im_pg_com/Documents/RTA Server/"]}[Content],
+  #"Imported Excel workbook" = Excel.Workbook(Navigation, null, true),
+  #"Navigation 1" = #"Imported Excel workbook"{[Item = "Sheet1", Kind = "Sheet"]}[Data],
+  #"Promoted headers" = Table.PromoteHeaders(#"Navigation 1", [PromoteAllScalars = true]),
+  #"Changed column type" = Table.TransformColumnTypes(#"Promoted headers", {{"Parent_Name", Int64.Type}, {"Name", type text}, {"xVendor", type text}, {"xVendorID", Int64.Type}, {"pgartworkprimary", type logical}})
+in
+  #"Changed column type"
