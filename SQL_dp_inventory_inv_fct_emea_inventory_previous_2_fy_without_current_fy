@@ -20,8 +20,8 @@ FROM dp_inventory.inv_fct_emea
 WHERE usd_pg_owned_stock<>0 -- roznica jest tutaj w porownaniu do CL 
 AND complex_decomposition <> "L"
 AND region IN ("EUE","EUF")
-AND (calendar_date >= CONCAT(CAST(YEAR(current_date()) - CASE WHEN MONTH(current_date()) < 7 THEN 7 ELSE 6 END AS STRING), '-07-01') 
-AND calendar_date <= CONCAT(CAST(YEAR(current_date()) - CASE WHEN MONTH(current_date()) < 7 THEN 3 ELSE 2 END AS STRING), '-06-30'))
+AND (calendar_date >= CONCAT(CAST(YEAR(current_date()) - CASE WHEN MONTH(current_date()) < 7 THEN 4 ELSE 3 END AS STRING), '-07-01') 
+AND calendar_date <= CONCAT(CAST(YEAR(current_date()) - CASE WHEN MONTH(current_date()) < 7 THEN 0 ELSE 1 END AS STRING), '-06-30'))
 GROUP BY calendar_date, material, plant, region, tdc_val, currency_key, valuation_class, material_plant_key, material_group, complex_decomposition
 ),
 
