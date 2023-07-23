@@ -83,9 +83,9 @@ pc_064_name
 FROM 
 ap_financial_shipment.case_fill_rate_ord_cuts_fct
 
-WHERE month_num in (select distinct month_num FROM ap_financial_shipment.case_fill_rate_ord_cuts_fct
-order by month_num desc
-limit 13)
+WHERE month_num 
+BETWEEN ((EXTRACT(YEAR FROM (current_date - INTERVAL '5 years' + INTERVAL '1 year'))::INT * 100) + 7)
+AND (((EXTRACT(YEAR FROM current_date)::INT - 1) * 100) + 6)
 
 AND region_abbr_name="EMEA"
 
