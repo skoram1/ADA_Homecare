@@ -1,0 +1,5 @@
+// This code (SQL/python) is used for Finished Product DFC calculation in specific DC's (only where are two per single SMO/CTRY) on any given day from initial SOG (and forward calculation of supply and demand) the query is based on SOG from dp_inventory and demand and supply from dp_rapidresponse.emea_sca_detail_duedate
+// The code checks initial SOG and based on query setup adds supply (Home Care used firm supply) and demand (forecast + open orders) calculating initial SOG for each day.
+// In the next step code calculates how many days forward demand it can cover from SOG on a specific day.
+
+// Query is mix of SQL and python. In the for of powerbi_dataflows look for: ADA_Manange_My DFC.ipynb for iPython Notebook and ADA_Manage_My DFC.py for source code.
