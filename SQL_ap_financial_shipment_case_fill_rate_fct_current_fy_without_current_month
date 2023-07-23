@@ -1,0 +1,888 @@
+// Below represents official CFR Data of Home Care for CURRENT Fiscal Years without Current Month
+// 1. `SHIP`: This CTE gets shipment data from the table `ap_financial_shipment.case_fill_rate_fct`. 
+// 2. `CUT`: This CTE gets order cut data from the table `ap_financial_shipment.case_fill_rate_ord_cuts_fct` where the region is "EMEA".   
+// 3. `GEO`: This CTE retrieves geographical data from `ap_masterdata_mdm.geo_hier_dim` where the first-level location is "ALL LOCATIONS".  
+// 4. `PC`: This CTE retrieves profit center data from `ap_masterdata_mdm.profit_center_dim`.   
+// 5. `SHIPFROM` and `PRODPLANT`: These CTEs retrieve site data from `ap_masterdata_mdm.site_dim` for the ship-from and product plant information respectively.   
+// 6. `CUST`: This CTE retrieves customer hierarchy data from `ap_masterdata_mdm.cust_hier_dim` with active and current indicators being "Y" and the customer hierarchy name as "GLBL STD CUST HIER (CBD-OWNED)".   
+// 7. `PROD`: This CTE retrieves product data from `ap_masterdata_mdm.prod_dim`.   
+// 8. `REASON`: This CTE retrieves reason data from `ap_masterdata_mdm.reason_dim`.   
+// 9. `ROOT`: This CTE retrieves root cause information by joining several levels of reasons from `ap_masterdata_mdm.reason_dim` to `ap_masterdata_mdm.reason_hier_dim`.   
+// 10. `BASE`: This CTE retrieves profit center hierarchy data where the profit center hierarchy name is "PC HIERARCHY GLOBAL SBU".   
+// 11. `CTE_SHIP`: This CTE performs a series of left joins on the `SHIP` CTE with the `GEO`, `PC`, `SHIPFROM`, `PRODPLANT`, `CUST`, `PROD` and `BASE` CTEs, matching on keys to pull in geographic, profit center, site, customer, product, and profit center hierarchy data.   
+// 12. `CTE_CUT`: This CTE performs a similar series of left joins but starts with the `CUT` CTE and also includes the `REASON` and `ROOT` CTEs to add in reason and root cause information.
+// 13. `CTE_FINAL_CUT` and `CTE_FINAL_SHIP`: These CTEs  are used for aggregating shipment and cut data at the various dimension levels defined in previous CTEs.
+//
+//
+// ### Explanation of Final Query 
+// 1. The query first establishes the `CFR` table as the base table and assigns it an alias `a`.
+// 2. It then performs a `LEFT JOIN` with the `BROKERS` table, alias `b`, based on the equality condition between `a.CustomerLevel8Name` and `b.CustomerLevel8Name`. This join operation ensures that all records from the `CFR` table and any matching records from the `BROKERS` table are returned.
+// 3. The query also performs another `LEFT JOIN` with the `VS_MAPPING` table, alias `c`, based on the equality condition between `a.FPCID` and `c.material_id`. However, since these columns may not share the same data type, we apply the `CAST` function to ensure both columns are treated as integers (`INT`) during the comparison. This join operation ensures that all records (from the result of the first join operation) and any matching records from the `VS_MAPPING` table are returned.
+// 4. The `SELECT` statement then specifies the columns to be returned in the final result set. It fetches all columns from the `CFR` table and the `CustomerType`, `value_stream`, and `secondary_value_stream` columns from the `BROKERS` and `VS_MAPPING` tables respectively
+
+
+
+SHIP
+AS
+(
+SELECT 
+time_period_end_date,
+prod_key,
+producing_site_key,
+reporting_cust_key,
+ship_from_site_key,
+ship_to_management_geo_key,
+ship_from_profit_center_key,
+market_portfolio_segment_key,
+time_period_key,
+orig_transact_id,
+market_portfolio_segment_code,
+item_unit_qty,
+base_unit_qty,
+case_unit_qty,
+stat_unit_qty,
+month_num,
+region_abbr_name,
+pc_064_name
+
+FROM ap_financial_shipment.case_fill_rate_fct
+WHERE month_num in (SELECT * 
+FROM ap_financial_shipment.case_fill_rate_fct
+WHERE month_num 
+BETWEEN ((EXTRACT(YEAR FROM current_date)::INT * 100) + 7)
+AND (((EXTRACT(YEAR FROM current_date)::INT * 100) + EXTRACT(MONTH FROM current_date)::INT) - 1)
+AND month_num != ((EXTRACT(YEAR FROM current_date)::INT * 100) + EXTRACT(MONTH FROM current_date)::INT)
+)
+
+)
+
+,CUT
+AS
+(
+SELECT 
+time_period_end_date,
+prod_key,
+ship_to_management_geo_key,
+producing_site_key,
+ship_from_site_key,
+reporting_cust_key,
+ship_from_profit_center_key,
+reason_key,
+root_cause_reason_key,
+orig_transact_id,
+orig_reason_code_id,
+fct_type_code,
+market_portfolio_segment_code,
+item_unit_qty,
+base_unit_qty,
+case_unit_qty,
+stat_unit_qty,
+month_num,
+region_abbr_name,
+pc_064_name
+
+FROM 
+ap_financial_shipment.case_fill_rate_ord_cuts_fct
+
+WHERE month_num
+BETWEEN ((EXTRACT(YEAR FROM current_date)::INT * 100) + 7)
+AND (((EXTRACT(YEAR FROM current_date)::INT * 100) + EXTRACT(MONTH FROM current_date)::INT) - 1)
+AND month_num != ((EXTRACT(YEAR FROM current_date)::INT * 100) + EXTRACT(MONTH FROM current_date)::INT)
+
+AND region_abbr_name="EMEA"
+
+
+)
+
+,GEO
+AS
+(
+SELECT 
+distinct
+geo_key,
+geo_type_name,
+iso_country_numeric_code,
+iso_country_alpha_code,
+geo_lvl_1_key,
+geo_lvl_1_id,
+geo_lvl_1_name,
+geo_lvl_1_long_name,
+geo_lvl_1_type_name,
+geo_lvl_1_report_seq_num,
+geo_lvl_2_key,
+geo_lvl_2_id,
+geo_lvl_2_name,
+geo_lvl_2_long_name,
+geo_lvl_2_type_name,
+geo_lvl_2_report_seq_num,
+--geo_lvl_3_key,
+geo_lvl_3_id,
+geo_lvl_3_name,
+geo_lvl_3_long_name,
+geo_lvl_3_type_name,
+geo_lvl_3_report_seq_num,
+geo_lvl_4_key,
+geo_lvl_4_id,
+geo_lvl_4_name,
+geo_lvl_4_long_name,
+geo_lvl_4_type_name,
+geo_lvl_4_report_seq_num,
+geo_lvl_5_key,
+geo_lvl_5_id,
+geo_lvl_5_name,
+geo_lvl_5_long_name,
+geo_lvl_5_type_name,
+geo_lvl_5_report_seq_num,
+geo_lvl_6_key,
+geo_lvl_6_id,
+geo_lvl_6_name,
+geo_lvl_6_long_name,
+geo_lvl_6_type_name,
+geo_lvl_6_report_seq_num,
+geo_lvl_7_key,
+geo_lvl_7_id,
+geo_lvl_7_name,
+geo_lvl_7_long_name,
+geo_lvl_7_type_name,
+geo_lvl_7_report_seq_num,
+geo_lvl_8_key,
+geo_lvl_8_id,
+geo_lvl_8_name,
+geo_lvl_8_long_name,
+geo_lvl_8_type_name,
+geo_lvl_8_report_seq_num,
+geo_lvl_9_key,
+geo_lvl_9_id,
+geo_lvl_9_name,
+geo_lvl_9_long_name,
+geo_lvl_9_type_name,
+geo_lvl_9_report_seq_num,
+geo_lvl_10_key,
+geo_lvl_10_id,
+geo_lvl_10_name,
+geo_lvl_10_long_name,
+geo_lvl_10_type_name,
+geo_lvl_10_report_seq_num,
+geo_lvl_11_key,
+geo_lvl_11_id,
+geo_lvl_11_name,
+geo_lvl_11_long_name,
+geo_lvl_11_type_name,
+geo_lvl_11_report_seq_num
+
+FROM ap_masterdata_mdm.geo_hier_dim
+where geo_lvl_1_name="ALL LOCATIONS"
+)
+
+,PC
+AS
+(
+SELECT
+profit_center_key,
+profit_center_name,
+profit_center_long_name,
+all_profit_centers_name
+
+FROM ap_masterdata_mdm.profit_center_dim
+)
+
+,SHIPFROM
+AS
+(
+SELECT 
+site_key,
+site_id as shipfrom_id,
+site_name as shipfrom_name
+FROM ap_masterdata_mdm.site_dim
+)
+
+,PRODPLANT
+AS
+(
+SELECT 
+site_key as prod_plant_key,
+site_id as prodplant_id,
+site_name as prodplant_name
+FROM ap_masterdata_mdm.site_dim
+
+)
+
+,CUST
+AS
+(
+SELECT
+cust_key,
+cust_orig_level,
+cust_id,
+cust_name,
+cust_lvl_1_id,
+cust_lvl_1_name,
+cust_lvl_2_id,
+cust_lvl_2_name,
+cust_lvl_3_id,
+cust_lvl_3_name,
+cust_lvl_4_id,
+cust_lvl_4_name,
+cust_lvl_5_id,
+cust_lvl_5_name,
+cust_lvl_6_id,
+cust_lvl_6_name,
+cust_lvl_7_id,
+cust_lvl_7_name,
+cust_lvl_8_id,
+cust_lvl_8_name,
+cust_lvl_9_id,
+cust_lvl_9_name,
+cust_lvl_10_id,
+cust_lvl_10_name
+
+FROM ap_masterdata_mdm.cust_hier_dim
+
+WHERE active_ind="Y" AND curr_ind="Y" and cust_hier_name="GLBL STD CUST HIER (CBD-OWNED)"
+
+)
+
+,PROD
+AS
+(
+SELECT
+prod_key as p_key,
+prod_id,
+prod_name,
+fpc,
+sector_name,
+sub_sector_name,
+category_name,
+brand_name,
+segment_name,
+tdc_variance_allocation_level as tdc_val_id
+
+FROM ap_masterdata_mdm.prod_dim PROD
+
+)
+
+,REASON
+AS
+(
+SELECT
+
+reason_key as r_key,
+reason_srce_sys_id as reason_code_id,
+reason_name
+
+from ap_masterdata_mdm.reason_dim
+
+
+)
+
+,ROOT
+AS
+(
+/* Dynamic security transformation applied */
+select
+a.reason_key as rc_reason_key,
+a.reason_lvl_2_id,
+a.reason_lvl_3_id,
+a.reason_lvl_4_id,
+b.reason_srce_sys_id,
+b.root_cause_key,
+b.reason_name as rc1,
+c.reason_srce_sys_id as rc_id2,
+c.reason_name as rc2,
+d.reason_srce_sys_id as rc_id3,
+d.reason_name as rc3
+
+
+from ap_masterdata_mdm.reason_hier_dim as a
+
+left join ap_masterdata_mdm.reason_dim as b on a.reason_lvl_2_id=b.reason_srce_sys_id
+left join ap_masterdata_mdm.reason_dim as c on a.reason_lvl_3_id=c.reason_srce_sys_id
+left join ap_masterdata_mdm.reason_dim as d on a.reason_lvl_4_id=d.reason_srce_sys_id
+
+where a.reason_lvl_1_id=10378
+
+)
+
+,BASE
+AS
+(
+SELECT distinct
+profit_center_lvl_5_name,
+profit_center_key
+
+from ap_masterdata_mdm.profit_center_hier_dim
+
+where
+profit_center_hier_name="PC HIERARCHY GLOBAL SBU"
+
+
+)
+
+,CTE_SHIP
+AS
+(
+SELECT SHIP.*,GEO.*,PC.*,SHIPFROM.*,PRODPLANT.*,CUST.*,PROD.*,BASE.profit_center_lvl_5_name
+FROM SHIP
+LEFT JOIN GEO ON SHIP.ship_to_management_geo_key=GEO.geo_key
+LEFT JOIN PC ON SHIP.ship_from_profit_center_key = PC.profit_center_key
+LEFT JOIN SHIPFROM ON SHIP.ship_from_site_key = SHIPFROM.site_key
+LEFT JOIN PRODPLANT ON SHIP.producing_site_key=PRODPLANT.prod_plant_key
+LEFT JOIN CUST ON SHIP.reporting_cust_key = CUST.cust_key
+LEFT JOIN PROD ON SHIP.prod_key=PROD.p_key
+LEFT JOIN BASE ON SHIP.ship_from_profit_center_key=BASE.profit_center_key
+)
+
+,CTE_CUT
+AS
+(
+SELECT CUT.*,GEO.*,PC.*,SHIPFROM.*,PRODPLANT.*,CUST.*,PROD.*,ROOT.*,REASON.*,BASE.profit_center_lvl_5_name
+FROM CUT
+LEFT JOIN GEO ON CUT.ship_to_management_geo_key=GEO.geo_key
+LEFT JOIN PC ON CUT.ship_from_profit_center_key = PC.profit_center_key
+LEFT JOIN SHIPFROM ON CUT.ship_from_site_key = SHIPFROM.site_key
+LEFT JOIN PRODPLANT ON CUT.producing_site_key=PRODPLANT.prod_plant_key
+LEFT JOIN CUST ON CUT.reporting_cust_key = CUST.cust_key
+LEFT JOIN PROD ON CUT.prod_key=PROD.p_key
+LEFT JOIN REASON ON CUT.reason_key = REASON.r_key
+LEFT JOIN ROOT ON CUT.root_cause_reason_key = ROOT.rc_reason_key
+LEFT JOIN BASE ON CUT.ship_from_profit_center_key = BASE.profit_center_key
+)
+
+,CTE_FINAL_CUT
+AS(
+
+SELECT 
+time_period_end_date,
+orig_transact_id,
+market_portfolio_segment_code,
+month_num,
+region_abbr_name,
+pc_064_name,
+iso_country_numeric_code,
+iso_country_alpha_code,
+geo_lvl_1_id,
+geo_lvl_1_name,
+geo_lvl_2_id,
+geo_lvl_2_name,
+geo_lvl_3_id,
+geo_lvl_3_name,
+geo_lvl_4_id,
+geo_lvl_4_name,
+geo_lvl_5_id,
+geo_lvl_5_name,
+geo_lvl_6_id,
+geo_lvl_6_name,
+profit_center_name,
+profit_center_long_name,
+all_profit_centers_name,
+profit_center_lvl_5_name,
+shipfrom_id,
+shipfrom_name,
+prodplant_id,
+prodplant_name,
+cust_orig_level,
+cust_id,
+cust_name,
+cust_lvl_1_id,
+cust_lvl_1_name,
+cust_lvl_2_id,
+cust_lvl_2_name,
+cust_lvl_3_id,
+cust_lvl_3_name,
+cust_lvl_4_id,
+cust_lvl_4_name,
+cust_lvl_5_id,
+cust_lvl_5_name,
+cust_lvl_6_id,
+cust_lvl_6_name,
+cust_lvl_7_id,
+cust_lvl_7_name,
+cust_lvl_8_id,
+cust_lvl_8_name,
+cust_lvl_9_id,
+cust_lvl_9_name,
+cust_lvl_10_id,
+cust_lvl_10_name,
+prod_id,
+prod_name,
+fpc,
+sector_name,
+sub_sector_name,
+category_name,
+brand_name,
+segment_name,
+tdc_val_id,
+rc1,
+rc_id2,
+rc2,
+rc_id3,
+rc3,
+reason_code_id,
+reason_name,
+
+0 as it_shipments,
+0 as buom_shipments,
+0 as cs_shipments,
+0 as su_shipments,
+
+
+sum(coalesce(item_unit_qty,0)) as ITCuts,
+sum(coalesce(base_unit_qty,0)) as BUOMCuts,
+sum(coalesce(case_unit_qty,0)) as CSCuts,
+sum(coalesce(stat_unit_qty,0)) as SUCuts
+
+FROM 
+
+CTE_CUT
+
+WHERE
+rc1 is not null 
+
+AND  
+geo_lvl_2_id IN ('925','K02')
+
+GROUP BY
+
+time_period_end_date,
+orig_transact_id,
+market_portfolio_segment_code,
+month_num,
+region_abbr_name,
+pc_064_name,
+iso_country_numeric_code,
+iso_country_alpha_code,
+geo_lvl_1_id,
+geo_lvl_1_name,
+geo_lvl_2_id,
+geo_lvl_2_name,
+geo_lvl_3_id,
+geo_lvl_3_name,
+geo_lvl_4_id,
+geo_lvl_4_name,
+geo_lvl_5_id,
+geo_lvl_5_name,
+geo_lvl_6_id,
+geo_lvl_6_name,
+profit_center_name,
+profit_center_long_name,
+all_profit_centers_name,
+profit_center_lvl_5_name,
+shipfrom_id,
+shipfrom_name,
+prodplant_id,
+prodplant_name,
+cust_orig_level,
+cust_id,
+cust_name,
+cust_lvl_1_id,
+cust_lvl_1_name,
+cust_lvl_2_id,
+cust_lvl_2_name,
+cust_lvl_3_id,
+cust_lvl_3_name,
+cust_lvl_4_id,
+cust_lvl_4_name,
+cust_lvl_5_id,
+cust_lvl_5_name,
+cust_lvl_6_id,
+cust_lvl_6_name,
+cust_lvl_7_id,
+cust_lvl_7_name,
+cust_lvl_8_id,
+cust_lvl_8_name,
+cust_lvl_9_id,
+cust_lvl_9_name,
+cust_lvl_10_id,
+cust_lvl_10_name,
+prod_id,
+prod_name,
+fpc,
+sector_name,
+sub_sector_name,
+category_name,
+brand_name,
+segment_name,
+tdc_val_id,
+rc1,
+rc_id2,
+rc2,
+rc_id3,
+rc3,
+reason_code_id,
+reason_name,
+it_shipments,
+buom_shipments,
+cs_shipments,
+su_shipments
+
+)
+
+,
+CTE_FINAL_SHIP
+AS
+(
+SELECT 
+time_period_end_date,
+orig_transact_id,
+market_portfolio_segment_code,
+month_num,
+region_abbr_name,
+pc_064_name,
+iso_country_numeric_code,
+iso_country_alpha_code,
+geo_lvl_1_id,
+geo_lvl_1_name,
+geo_lvl_2_id,
+geo_lvl_2_name,
+geo_lvl_3_id,
+geo_lvl_3_name,
+geo_lvl_4_id,
+geo_lvl_4_name,
+geo_lvl_5_id,
+geo_lvl_5_name,
+geo_lvl_6_id,
+geo_lvl_6_name,
+profit_center_name,
+profit_center_long_name,
+all_profit_centers_name,
+profit_center_lvl_5_name,
+shipfrom_id,
+shipfrom_name,
+prodplant_id,
+prodplant_name,
+cust_orig_level,
+cust_id,
+cust_name,
+cust_lvl_1_id,
+cust_lvl_1_name,
+cust_lvl_2_id,
+cust_lvl_2_name,
+cust_lvl_3_id,
+cust_lvl_3_name,
+cust_lvl_4_id,
+cust_lvl_4_name,
+cust_lvl_5_id,
+cust_lvl_5_name,
+cust_lvl_6_id,
+cust_lvl_6_name,
+cust_lvl_7_id,
+cust_lvl_7_name,
+cust_lvl_8_id,
+cust_lvl_8_name,
+cust_lvl_9_id,
+cust_lvl_9_name,
+cust_lvl_10_id,
+cust_lvl_10_name,
+prod_id,
+prod_name,
+fpc,
+sector_name,
+sub_sector_name,
+category_name,
+brand_name,
+segment_name,
+tdc_val_id,
+"" as rc1,
+"" as rc_id2,
+"" as rc2,
+"" as rc_id3,
+"" as rc3,
+"" as reason_code_id,
+"" as reason_name,
+
+sum(coalesce(item_unit_qty,0)) as it_shipments,
+sum(coalesce(base_unit_qty,0)) as buom_shipments,
+sum(coalesce(case_unit_qty,0)) as cs_shipments,
+sum(coalesce(stat_unit_qty,0)) as su_shipments,
+
+0 as ITCuts,
+0 as BUOMCuts,
+0 as CSCuts,
+0 as SUCuts
+
+
+FROM CTE_SHIP
+
+WHERE geo_lvl_2_id IN ('925','K02')
+
+GROUP BY
+time_period_end_date,
+market_portfolio_segment_code,
+month_num,
+region_abbr_name,
+orig_transact_id,
+pc_064_name,
+geo_lvl_2_id,
+geo_lvl_2_name,
+geo_lvl_3_id,
+geo_lvl_3_name,
+geo_lvl_4_name,
+geo_lvl_5_name,
+geo_lvl_6_name,
+profit_center_name,
+profit_center_long_name,
+profit_center_lvl_5_name,
+shipfrom_id,
+shipfrom_name,
+prodplant_id,
+prodplant_name,
+cust_orig_level,
+cust_id,
+cust_name,
+cust_lvl_1_id,
+cust_lvl_1_name,
+cust_lvl_2_id,
+cust_lvl_2_name,
+cust_lvl_3_id,
+cust_lvl_3_name,
+cust_lvl_4_id,
+cust_lvl_4_name,
+cust_lvl_5_id,
+cust_lvl_5_name,
+cust_lvl_6_id,
+cust_lvl_6_name,
+cust_lvl_7_id,
+cust_lvl_7_name,
+cust_lvl_8_id,
+cust_lvl_8_name,
+cust_lvl_9_id,
+cust_lvl_9_name,
+cust_lvl_10_id,
+cust_lvl_10_name,
+prod_name,
+fpc,
+sector_name,
+sub_sector_name,
+category_name,
+brand_name,
+segment_name,
+tdc_val_id,
+iso_country_numeric_code,
+iso_country_alpha_code,
+geo_lvl_1_id,
+geo_lvl_1_name,
+geo_lvl_4_id,
+geo_lvl_5_id,
+geo_lvl_6_id,
+all_profit_centers_name,
+prod_id,
+ITCuts,
+BUOMCuts,
+CSCuts,
+SUCuts,
+rc1,
+rc_id2,
+rc2,
+rc_id3,
+rc3,
+reason_code_id,
+reason_name
+
+)
+
+,UNION_CTE
+AS
+(
+SELECT * FROM CTE_FINAL_SHIP
+UNION
+SELECT * FROM CTE_FINAL_CUT
+)
+
+,CTE_2
+AS
+(
+
+SELECT 
+
+time_period_end_date as Caldate,
+market_portfolio_segment_code as Code,
+month_num as Monthnumberie201302,
+orig_transact_id as SAPSalesOrderNumber,
+geo_lvl_3_name as GeographicAreaName,
+geo_lvl_4_name as GeographicGroupName,
+geo_lvl_5_name as ReportingGeographyName,
+geo_lvl_6_name as MinorGeographyName,
+profit_center_name as TransitionLevel2Name,
+profit_center_lvl_5_name as BaseProfitCenter,
+shipfrom_id as Level7ID50,
+shipfrom_name as Level7Name51,
+prodplant_id as ProdPlantID,
+prodplant_name as Level7Name48,
+cust_orig_level as Customeroriginallevel,
+cust_lvl_1_id as TopCustomerLevelID,
+cust_lvl_1_name as TopCustomerLevelName,
+cust_lvl_2_id as CustomerLevel2ID,
+cust_lvl_2_name as CustomerLevel2Name,
+cust_lvl_3_id as CustomerLevel3ID,
+cust_lvl_3_name as CustomerLevel3Name,
+cust_lvl_4_id as CustomerLevel4ID,
+cust_lvl_4_name as CustomerLevel4Name,
+cust_lvl_5_id as CustomerLevel5ID,
+cust_lvl_5_name as CustomerLevel5Name,
+cust_lvl_6_id as CustomerLevel6ID,
+cust_lvl_6_name as CustomerLevel6Name,
+cust_lvl_7_id as CustomerLevel7ID,
+cust_lvl_7_name as CustomerLevel7Name,
+cust_lvl_8_id as CustomerLevel8ID,
+cust_lvl_8_name as CustomerLevel8Name,
+cust_lvl_9_id as CustomerLevel9ID,
+cust_lvl_9_name as CustomerLevel9Name,
+cust_lvl_10_id as CustomerLevel10ID,
+cust_lvl_10_name as CustomerLevel10Name,
+prod_name as FPCLongName,
+fpc as FPCID,
+sector_name as SectorName,
+sub_sector_name as SubSectorName,
+category_name as CategoryName,
+brand_name as BrandName,
+segment_name as SegmentName,
+tdc_val_id as tdc_val_id,
+ITCuts as ITUnfilledCases,
+BUOMCuts as BUOMUnfilledCases,
+CSCuts as CSUnfilledCases,
+SUCuts as SUUnfilledCases,
+rc1 as RootCauseCodeName,
+rc_id2 as RCLevel2ID,
+rc2 as RCLevel2Name,
+rc_id3 as RCLevel3ID,
+rc3 as RCLevel3Name,
+reason_code_id as RNLevel5ID,
+reason_name as RNLevel5Name,
+it_shipments as ITShipments,
+buom_shipments as BUOMShipments,
+cs_shipments as CSShipments,
+su_shipments as SUShipments,
+
+su_shipments+SUCuts as SUCFRTotalOrders,
+it_shipments+ITCuts as ITCFRTotalOrders,
+cs_shipments+CSCuts as CSCFRTotalOrders,
+buom_shipments+BUOMCuts as BUOMCFRTotalOrders,
+
+case when (rc3 in ('3.4.2 Order exceed promo allot','3.4.3 Order exceed price allot') and geo_lvl_4_name='TURKEY & CCAR')
+    then 0
+    else SUCuts
+    end as `SUUnfilledCases_exc.3.4.2_3.4.3`,
+    
+case when (rc3 in ('3.4.2 Order exceed promo allot','3.4.3 Order exceed price allot') and geo_lvl_4_name='TURKEY & CCAR')
+    then 0
+    else CSCuts
+    end as `CSUnfilledCases_exc.3.4.2_3.4.3`,
+    
+case when (rc3 in ('3.4.2 Order exceed promo allot','3.4.3 Order exceed price allot') and geo_lvl_4_name='TURKEY & CCAR')
+    then 0
+    else ITCuts
+    end as `ITUnfilledCases_exc.3.4.2_3.4.3`,
+    
+case when (rc3 in ('3.4.2 Order exceed promo allot','3.4.3 Order exceed price allot') and geo_lvl_4_name='TURKEY & CCAR')
+    then 0
+    else BUOMCuts
+    end as `BUOMUnfilledCases_exc.3.4.2_3.4.3`
+
+FROM UNION_CTE
+)
+
+, CFR
+AS 
+(
+SELECT
+Caldate as CalendarDay,
+Code as SPACEDSegmentation,
+Monthnumberie201302 as MonthNumber,
+SAPSalesOrderNumber,
+GeographicAreaName,
+GeographicGroupName,
+ReportingGeographyName,
+MinorGeographyName,
+TransitionLevel2Name,
+BaseProfitCenter,
+Level7ID50 as ShipFromID,
+Level7Name51 as ShipFromName,
+ProdPlantID,
+Level7Name48 as ProdPlantName,
+Customeroriginallevel,
+TopCustomerLevelID,
+TopCustomerLevelName,
+CustomerLevel2ID,
+CustomerLevel2Name,
+CustomerLevel3ID,
+CustomerLevel3Name,
+CustomerLevel4ID,
+CustomerLevel4Name,
+CustomerLevel5ID,
+CustomerLevel5Name,
+CustomerLevel6ID,
+CustomerLevel6Name,
+CustomerLevel7ID,
+CustomerLevel7Name,
+CustomerLevel8ID,
+CustomerLevel8Name,
+CustomerLevel9ID,
+CustomerLevel9Name,
+CustomerLevel10ID,
+CustomerLevel10Name,
+FPCLongName as FPCDescription,
+FPCID,
+SectorName,
+SubSectorName as Subsector,
+CategoryName,
+BrandName as BrandForm,
+SegmentName,
+tdc_val_id as TDCValName,
+ITUnfilledCases,
+BUOMUnfilledCases,
+CSUnfilledCases,
+SUUnfilledCases,
+RootCauseCodeName,
+RCLevel2ID,
+RCLevel2Name,
+RCLevel3ID,
+RCLevel3Name,
+RNLevel5ID,
+RNLevel5Name,
+ITShipments,
+BUOMShipments,
+CSShipments,
+SUShipments,
+SUCFRTotalOrders,
+ITCFRTotalOrders,
+CSCFRTotalOrders,
+BUOMCFRTotalOrders,
+`SUUnfilledCases_exc.3.4.2_3.4.3`,
+`CSUnfilledCases_exc.3.4.2_3.4.3`,
+`ITUnfilledCases_exc.3.4.2_3.4.3`,
+`BUOMUnfilledCases_exc.3.4.2_3.4.3`,
+
+ITShipments+`ITUnfilledCases_exc.3.4.2_3.4.3` as `ITCFRTotalOrders_exc.3.4.2_3.4.3`,
+SUShipments+`SUUnfilledCases_exc.3.4.2_3.4.3` as `SUCFRTotalOrders_exc.3.4.2_3.4.3`,
+CSShipments+`CSUnfilledCases_exc.3.4.2_3.4.3` as `CSCFRTotalOrders_exc.3.4.2_3.4.3`,
+BUOMShipments+`BUOMUnfilledCases_exc.3.4.2_3.4.3` as `BUOMCFRTotalOrders_exc.3.4.2_3.4.3`,
+
+RNLevel5ID as RNLevel4ID,
+RNLevel5Name as RNLevel4Name
+
+
+from CTE_2
+
+WHERE SubSectorName IN ( 'Home Care')
+)
+
+, BROKERS 
+AS 
+( 
+SELECT * FROM userdb_eupscanalytics_im.broker_customers
+
+), VS_MAPPING
+AS 
+( 
+SELECT material_id, UPPER(value_stream) AS value_stream, UPPER(secondary_value_stream) AS secondary_value_stream
+FROM hive_metastore.userdb_skora_m_1.hom_fpc_mapping 
+)
+
+SELECT 
+a.*,
+b.CustomerType, 
+c.value_stream, 
+c.secondary_value_stream
+FROM CFR as a
+LEFT JOIN BROKERS as b on a.CustomerLevel8Name = b.CustomerLevel8Name
+LEFT JOIN VS_MAPPING as c on CAST(a.FPCID AS INT) = CAST(c.material_id AS int)
