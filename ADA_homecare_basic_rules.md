@@ -20,14 +20,14 @@ _(consider using ChatGPT to provide you with entry description for each step - t
 
 <span style="font-size: 5;">Datamarts:</span>
 
-**are official ADA Home Care Certified data source** - end user connected to datamart will be able to source all official measures that ADA Team delivers for Homecare category.We provide correct and quality data for any 'recognized' end-point when connected by combination of fpc/dc/time to our masterdata matrix tables.
+**single data source for Home Care users** - end user connected to datamart will be able to source all official measures that ADA Team delivers for Homecare category.We provide correct and quality data for any 'recognized' end-point when connected by combination of fpc/dc/time to our masterdata matrix tables.
 
-**single source for PowerBI reports/dashboards** - direct connect to datamart = synchronized refresh. PowerBI reports/dashboards sourcing from same datamart are being refreshed simultaneously with datamart using minimum capacity. 
+**single data source for PowerBI reports/dashboards** - direct connect to datamart = synchronized refresh. PowerBI reports/dashboards sourcing from same datamart are being refreshed simultaneously with datamart using minimum capacity. 
 
 
-Shortly on _Core Document_:
+ _ADA Core Document_:
 
-Document with descriptions of ADA Home Care organication. Contains "linkage" between all dataflows, datamarts, PowerAutomate workflows and python codes. A **full skeleton**. The Excel file allows to orchestrate ADA Solutions in synchronized way. This is a control panel. Has also all the references to GitHub with SQL\powerqueries\python codes (search P&G GitHub looking for names from Excel). We plan to use GitHub to feed our python codes with SQL queries and more to use in Home Care further automations.
+Document with description of ADA Home Care organization. Documents "linkage" between all dataflows, datamarts, PowerAutomate workflows and python codes. **A full skeleton**. Excel file allows to orchestrate ADA Solutions in synchronized way. This is a control panel. Has also all the references to GitHub SQL\power queries\python codes (search P&G GitHub looking for names from Excel). We plan to use GitHub to feed our python codes with SQL queries and more to use in Home Care further automations
 
 <br></br>
 Your sincere
