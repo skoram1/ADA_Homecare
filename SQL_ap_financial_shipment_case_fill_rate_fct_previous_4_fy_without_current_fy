@@ -1,6 +1,6 @@
 // Below represents official CFR Data of Home Care for PREVIOUS 4 Fiscal Years without Current Fiscal Year
-// 1. `SHIP`: This CTE gets the most recent 13 months of shipment data from the table `ap_financial_shipment.case_fill_rate_fct`. 
-// 2. `CUT`: This CTE gets the most recent 13 months of order cut data from the table `ap_financial_shipment.case_fill_rate_ord_cuts_fct` where the region is "EMEA".   
+// 1. `SHIP`: This CTE gets shipment data from the table `ap_financial_shipment.case_fill_rate_fct`. 
+// 2. `CUT`: This CTE gets order cut data from the table `ap_financial_shipment.case_fill_rate_ord_cuts_fct` where the region is "EMEA".   
 // 3. `GEO`: This CTE retrieves geographical data from `ap_masterdata_mdm.geo_hier_dim` where the first-level location is "ALL LOCATIONS".  
 // 4. `PC`: This CTE retrieves profit center data from `ap_masterdata_mdm.profit_center_dim`.   
 // 5. `SHIPFROM` and `PRODPLANT`: These CTEs retrieve site data from `ap_masterdata_mdm.site_dim` for the ship-from and product plant information respectively.   
