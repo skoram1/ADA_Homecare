@@ -1,0 +1,141 @@
+// Below query is used to calculate Home Care IWL. Here the range date is CURRENT MONTH 
+//
+// 1. The query begins by refreshing the tables to be used in the query. This ensures the most recent data is fetched.
+// 2. A series of Common Table Expressions (CTEs) are created to structure the data in a more readable and organized manner. Here's what each CTE does:
+//   - `CTEINV`: Filters and aggregates the `dp_inventory.inv_fct_emea` table to get the relevant data for the region, TDC value, decomposition complexity, valuation class, and certain inventory conditions within a specific time frame.
+//   - `CTEEANDIC`: Filters the `dp_masterdata_g11.marm` table to get the European Article Number (EAN) for materials with a specific unit of measure (UOM).
+//   - `CTDMAT`: Extracts certain columns from the `dp_inventory.matl_dim` table, including material text, global market segment, customization type, and global material status.
+//   - `CTDPLANT`: Extracts the material plant ID, MRP controller, local material status, and local market segment from the `dp_inventory.matl_plant_dim` table.
+//   - `CTDPPLANT`: Extracts the production plant from the `dp_masterdata_g11.ztxxptatva` table based on a specific attribute.
+//   - `CTDPLANTNAME`: Extracts plant text, country, and country text from the `dp_inventory.plant_dim` table.
+//   - `CTDTDC`: Fetches TDC values and their associated long-form text from the `dp_inventory.tdc_val_dim` table.
+//   - `APSMO`: Extracts material, calendar date, plant, and SMO from `ap_inventory.inventory_fct_emea`.
+// 3. Following the CTEs, multiple table joins are performed to combine the data from the aforementioned CTEs. At each step, the joined data is assigned to another CTE for further processing. For example:
+//   - `CTEMAT` joins `CTEINV` and `CTEEANDIC` on the material and UOM.
+//   - `CTEPLANTNAME` joins `CTEMAT` with `CTDMAT` on the material, filtering on the global status.
+//   - `CTEPRODPLANT` joins `CTEPLANTNAME` with `CTDPLANTNAME` on the plant ID.
+//   - Similar joins continue until all data is merged into the `ctesmo` CTE.
+// 4. Finally, a SELECT DISTINCT statement is used to fetch the final result set from the `ctesmo` CTE, along with additional information from `ctdtdc`. This output provides a comprehensive view of the inventory data, with details like EAN, calendar date, material, material text, plant, plant text, MRP controller, base unit of measure, country, country text, global segment, local segment, customization type, global status, local status, production plant, SMO, TDC value, total plant stock, MRP available, safety stock, and maximum stock.
+
+
+
+WITH CTEINV AS
+(
+    SELECT
+        calendar_date, material, plant, base_uom, tdc_val, SUM(su_total_plant_stock) AS su_total_plant_stock , SUM(su_mrp_available_csp_agg) as su_mrp_available, SUM(su_safety_stock) AS su_safety_stock, SUM(su_maximum_stock) AS su_maximum_stock
+    FROM dp_inventory.inv_fct_emea
+    WHERE region IN ('EUR','EUE','EUF')
+    And tdc_val IN ('02817', '02819', '02815' , '02802' , '0V0OO' , '0Z0PZ' , '0V0BI' , '000PZ' , '02804' , '0C0OO' , '02805' , '02809' , '000GV' , '02818' , '02821' , '000QA' , '0B0IB' , '02812' , '02820' , '04050' , '0A0AQ' , '0E0YU' , '0O0PM' , '0Z0JY' , '02813' , '02811', '0W0ZL', '02842', '02839', '02838', '02814' , '0Z0IV' , '0V0BJ')
+    And complex_decomposition IN ('S', 'C')
+    and valuation_class IN ('5001', '5003', 'FPC (dummy_key)', '5031', '5002')
+    --and su_total_plant_stock > '0' 
+    and (su_mrp_available_csp_agg > '0' or su_safety_stock > '0' )  
+    -- or su_maximum_stock > '0')
+    --and base_uom Not In ('C2', 'E2', 'J2')
+    --and (total_inventory_for_dfc <> '0' OR mrp_inventory_for_dfc <> '0')
+	and calendar_date BETWEEN trunc(current_date(), 'MM') AND current_date()
+    GROUP BY calendar_date, material, plant, tdc_val, base_uom
+),
+CTEEANDIC AS
+(
+    Select matnr, ean11 as ean, meinh from dp_masterdata_g11.marm where umrez = umren and ean11 <> ' ' and meinh IN ('MP', 'BP', 'IT', 'CS', 'J2', 'B2', 'B1')
+),
+CTDMAT AS
+(
+    SELECT material, material_text, global_market_segment as global_segment, customization_type, global_material_status as global_status from dp_inventory.matl_dim
+),
+CTDPLANT AS
+(
+    Select material_plant, plant as plant_id, prod_site_mrp_controller as mrp_controller, local_material_status as local_status, local_market_segment as local_segment from dp_inventory.matl_plant_dim
+),
+CTDPPLANT AS
+(
+    Select matnr, zpatrval as prod_plant from dp_masterdata_g11.ztxxptatva where zpatrnr = '902' 
+),
+CTDPLANTNAME AS
+(
+    Select plant as plantid, plant_text, plant_text as prod_plant_text, country, country_text from dp_inventory.plant_dim
+),
+CTDTDC AS
+(
+    Select tdc_val, tdc_val_text_long from dp_inventory.tdc_val_dim
+),
+APSMO AS
+(
+    SELECT material, calendar_date, plant, smo_acc_single_smo FROM ap_inventory.inventory_fct_emea
+),
+CTEMAT AS
+(
+    SELECT CTEEANDIC.ean, CTEINV.* from CTEINV
+    left join cteeandic on
+    cteeandic.matnr = CTEINV.material
+    and cteeandic.meinh = CTEINV.base_uom
+),
+CTEPLANTNAME AS
+(
+    Select ctemat.*, ctdmat.material_text, global_segment, customization_type, global_status from ctemat
+    left join ctdmat on
+    ctdmat.material = ctemat.material
+    where (ctdmat.global_status is null or ctdmat.global_status = '3' or ctdmat.global_status = '4' or ctdmat.global_status = '2' or ctdmat.global_status = '5')
+),
+CTEPRODPLANT AS
+(
+    select cteplantname.*, CTDPLANTNAME.plant_text, country, country_text from cteplantname
+    left join CTDPLANTNAME on
+    cteplantname.plant = CTDPLANTNAME.plantid
+),
+CTETDC AS
+(
+    select CTEPRODPLANT.*, ctdplant.local_status, mrp_controller, local_segment from CTEPRODPLANT
+    left join ctdplant on
+    CTEPRODPLANT.material = CTDPLANT.material_plant
+    AND CTEPRODPLANT.plant = CTDPLANT.plant_id
+    --where ( ctdplant.local_status = '3' or ctdplant.local_status = '4')
+),
+cteppl AS
+(
+    select ctetdc.*, CTDPPLANT.prod_plant from ctetdc
+    left join ctdpplant on
+    ctetdc.material = ctdpplant.matnr
+),
+cteppln AS
+(
+    select cteppl.*, CTDPLANTNAME.prod_plant_text from cteppl
+    left join CTDPLANTNAME on
+    cteppl.prod_plant = CTDPLANTNAME.plantid
+),
+ctesmo AS
+(
+    select cteppln.*, APSMO.smo_acc_single_smo from cteppln
+    left join APSMO on
+    cteppln.material = APSMO.material and
+    cteppln.plant = APSMO.plant and
+    cteppln.calendar_date = APSMO.calendar_date
+)
+SELECT DISTINCT 
+    ctesmo.ean, 
+    calendar_date, 
+    material, 
+    material_text, 
+    plant, 
+    plant_text, 
+    mrp_controller, 
+    base_uom, 
+    country, 
+    country_text, 
+    global_segment, 
+    local_segment, 
+    customization_type, 
+    global_status, 
+    local_status, 
+    prod_plant, 
+    prod_plant_text, 
+    smo_acc_single_smo, 
+    tdc_val_text_long as tdc_val, 
+    su_total_plant_stock, 
+    su_mrp_available, 
+    su_safety_stock, 
+    su_maximum_stock 
+FROM ctesmo
+LEFT JOIN ctdtdc 
+    ON ctesmo.tdc_val = ctdtdc.tdc_val;
