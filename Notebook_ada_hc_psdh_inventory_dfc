@@ -9,3 +9,12 @@
 // For quality of input data based on which calculation was performed: userdb_skora_m_1.ada_hc_rr_timestamp (rapidresponse timestamp is checked inventory_dfc_rapidresponse_refresh_timestamp)
 // 
 // or can be mounted in dataflow directly - DFC query runs on 08:40 CEST
+
+
+let
+    Source = Value.NativeQuery(Databricks.Catalogs("adb-8755884253711570.10.azuredatabricks.net", "sql/protocolv1/o/8755884253711570/1110-205946-addle823", [Catalog="hive_metastore", Database=null, EnableAutomaticProxyDiscovery=null]){[Name="hive_metastore",Kind="Database"]}[Data], "SELECT MAX(`timestamp`) as rapidrespomse_emea_refresh_timestamp_CET FROM (DESCRIBE HISTORY dp_rapidresponse.emea_sca_detail_duedate)", null, [EnableFolding=true]),
+    DateTimeCol = Source[rapidrespomse_emea_refresh_timestamp_CET]{0}, // Pobieranie wartości DateTime
+    ConvertToCEST = DateTimeZone.SwitchZone(DateTimeZone.From(DateTimeCol), 2), // Przesunięcie do CEST
+    Result = ConvertToCEST
+in
+    Result
