@@ -3,3 +3,6 @@
 // In the next step code calculates how many days forward demand it can cover from SOG on a specific day.
 
 // Query is mix of SQL and python. In the for of powerbi_dataflows look for: ADA_Manange_My DFC.ipynb for iPython Notebook and ADA_Manage_My DFC.py for source code.
+//
+//
+// Tables should be connected between each other on _REF_FPC_DC and externally on Date and FPC matrix
