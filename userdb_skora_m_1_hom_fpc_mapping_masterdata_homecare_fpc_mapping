@@ -1,0 +1,4 @@
+// This table is created with FPC Home Care masterdata mapping KNIME flow. Attached to this repository as ADA_HC_homecare_fpc_mapping.
+// FPC/plant table is loaded to Databricks directly withy KNIME azure blob connection
+// Rules for the plant definition is in KNIME rule engines.
+// Separate description of KNIME fpc homecare masterdata flow is posted on GitHub under KNIME_userdb_skora_m_1_hom_fpc_mapping_masterdata_homecare_fpc_mapping
