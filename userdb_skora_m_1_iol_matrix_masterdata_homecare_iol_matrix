@@ -1,0 +1,5 @@
+// IOL matrix is created in Databricks table based on the IOL list maintained by IOP KU on Home Care IOL list in ADA HC Communication SharePoint 
+// https://pgone.sharepoint.com/sites/ADAHCCommunication
+
+SELECT IOL_email FROM userdb_skora_m_1.hom_retail_iol_list
+
