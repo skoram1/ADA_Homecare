@@ -1,0 +1,73 @@
+SELECT
+  *
+FROM
+  ap_masterdata_mdm.cust_dim
+WHERE
+  cust_key IN (
+    SELECT
+      distinct sold_to_cust_key
+    FROM
+      ap_financial_shipment.shpmnt_fct
+    where
+      goods_issue_date > date_add(current_date(), -365)
+      AND region_abbr_name = 'EMEA'
+      AND prod_key IN (
+        SELECT
+          distinct prod_key
+        FROM
+          ap_masterdata_mdm.prod_dim
+        WHERE
+          prod_id IN (
+            SELECT
+              distinct material_id
+            FROM
+              userdb_skora_m_1.hom_fpc_mapping
+          )
+      )
+  )
+  OR cust_key IN (
+    SELECT
+      distinct bill_to_cust_key
+    FROM
+      ap_financial_shipment.shpmnt_fct
+    where
+      goods_issue_date > date_add(current_date(), -365)
+      AND region_abbr_name = 'EMEA'
+      AND prod_key IN (
+        SELECT
+          distinct prod_key
+        FROM
+          ap_masterdata_mdm.prod_dim
+        WHERE
+          prod_id IN (
+            SELECT
+              distinct material_id
+            FROM
+              userdb_skora_m_1.hom_fpc_mapping
+          )
+      )
+  )
+  OR cust_key IN (
+    SELECT
+      distinct reporting_cust_key
+    FROM
+      ap_financial_shipment.shpmnt_fct
+    where
+      goods_issue_date > date_add(current_date(), -365)
+      AND region_abbr_name = 'EMEA'
+      AND prod_key IN (
+        SELECT
+          distinct prod_key
+        FROM
+          ap_masterdata_mdm.prod_dim
+        WHERE
+          prod_id IN (
+            SELECT
+              distinct material_id
+            FROM
+              userdb_skora_m_1.hom_fpc_mapping
+          )
+      )
+  )
+  AND curr_ind = 'Y'
+  AND active_ind = 'Y'
