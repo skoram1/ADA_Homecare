@@ -1,0 +1,2 @@
+SELECT * FROM ap_emdl_initiative_master_data.iopt_initiative_material
+WHERE iopt_initiative_subsector_value = 'HOM' AND iopt_initiative_region_value IN ('REU')
