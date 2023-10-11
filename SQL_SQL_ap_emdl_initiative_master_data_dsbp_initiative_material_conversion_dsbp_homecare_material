@@ -1,0 +1,2 @@
+SELECT * FROM ap_emdl_initiative_master_data.dsbp_initiative_material_pipo
+WHERE dsbp_initiative_subsector_value = 'HOM'
